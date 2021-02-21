@@ -1,7 +1,7 @@
 use super::{Token, Value};
 
 #[derive(Debug)]
-pub struct UnaryOp<F: Fn(Value) -> Value> {
+pub struct UnaryOp {
     /// トークン
     pub token: Token,
     /// 適用コスト
@@ -9,11 +9,11 @@ pub struct UnaryOp<F: Fn(Value) -> Value> {
     /// 整数値にのみ適用可能
     pub int_only: bool,
     /// 適用
-    pub apply: F,
+    pub apply: fn(Value) -> Value,
 }
 
-impl<F: Fn(Value) -> Value> UnaryOp<F> {
-    pub fn new(token: Token, cost: u8, int_only: bool, apply: F) -> Self {
+impl UnaryOp {
+    pub fn new(token: Token, cost: u8, int_only: bool, apply: fn(Value) -> Value) -> Self {
         UnaryOp {
             token,
             cost,
