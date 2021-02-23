@@ -3,6 +3,9 @@ mod equation;
 mod unary_op;
 
 pub type Value = f64;
+/// 演算子および桁トークン。
+/// `0xf0`より後の値は桁のために予約済みで、
+/// `t = 0xf0 + n (0 <= n < 10)`のとき、数字`n`を表す。
 pub type Token = u8;
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -55,8 +58,8 @@ impl Searcher {
     pub fn knowledge(&self, numbers: impl Into<String>) -> Knowledge {
         let key: String = numbers.into();
         let mut knowledge = HashMap::<WrappedValue, Equation>::new();
-        let n: f64 = key.parse::<i32>().unwrap().into();
-        knowledge.insert(WrappedValue(n), Equation::from_value(n, 0)); // TODO: トークンをどうするか
+        let e = Equation::from_numbers(&key);
+        knowledge.insert(WrappedValue(e.value), e);
         for k in 1..key.len() {
             // TODO: この_knowledgeは必ずメモ化されているようにできるか？（これは参照を返さなければならないはずだが、
             // この時点での計算になると&mut selfが必要になるのでborrowできない）

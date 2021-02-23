@@ -35,10 +35,12 @@ impl Equation {
         })
     }
 
-    /// 値から`Equation`を作成
-    pub fn from_value(value: Value, token: Token) -> Equation {
+    /// 探索数値列からその全体を唯一の値として持つ`Equation`を作成
+    pub fn from_numbers(numbers: &String) -> Equation {
+        let tokens: Vec<Token> = numbers.as_bytes().iter().map(|c| 0xf0 + (c - b'0')).collect();
+        let value: f64 = numbers.parse::<i32>().unwrap().into();
         Equation {
-            tokens: vec![token],
+            tokens,
             cost: 0,
             value,
         }
