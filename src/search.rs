@@ -44,13 +44,15 @@ impl Eq for WrappedValue {}
 
 pub struct Searcher {
     knowledge: HashMap<String, Knowledge>,
+    unary_ops: Vec<UnaryOp>,
     binary_ops: Vec<BinaryOp>,
 }
 
 impl Searcher {
-    pub fn new(binary_ops: Vec<BinaryOp>) -> Searcher {
+    pub fn new(unary_ops: Vec<UnaryOp>, binary_ops: Vec<BinaryOp>) -> Searcher {
         Searcher {
             knowledge: HashMap::new(),
+            unary_ops,
             binary_ops,
         }
     }
@@ -58,8 +60,12 @@ impl Searcher {
     pub fn knowledge(&self, numbers: impl Into<String>) -> Knowledge {
         let key: String = numbers.into();
         let mut knowledge = HashMap::<WrappedValue, Equation>::new();
+
+        // 数値単独での表現
         let e = Equation::from_numbers(&key);
         knowledge.insert(WrappedValue(e.value), e);
+
+        // 部分列を二項演算で結合する
         for k in 1..key.len() {
             // TODO: この_knowledgeは必ずメモ化されているようにできるか？（これは参照を返さなければならないはずだが、
             // この時点での計算になると&mut selfが必要になるのでborrowできない）
@@ -82,6 +88,30 @@ impl Searcher {
                             },
                             None => {}
                         }
+                    }
+                }
+            }
+        }
+
+        let b_knowledge = knowledge;
+        let mut knowledge = HashMap::<WrappedValue, Equation>::new();
+
+        // 単項演算で拡大する
+        for _ in 0..2 { // 単項演算の最大適用数
+            for op in self.unary_ops.iter() {
+                for (_, e) in b_knowledge.iter() {
+                    match Equation::apply_unary(e, op) {
+                        Some(equation) => match knowledge.entry(WrappedValue(equation.value)) {
+                            Entry::Occupied(mut o) => {
+                                if o.get().cost > equation.cost {
+                                    o.insert(equation);
+                                }
+                            }
+                            Entry::Vacant(v) => {
+                                v.insert(equation);
+                            }
+                        }
+                        None => {}
                     }
                 }
             }
