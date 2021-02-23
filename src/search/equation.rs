@@ -1,6 +1,6 @@
 use super::{BinaryOp, Token, UnaryOp, Value};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// 等式に関する知識。トークン列の計算結果がある値と一致することを示す。
 pub struct Equation {
     pub tokens: Vec<Token>,

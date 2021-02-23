@@ -92,13 +92,11 @@ impl Searcher {
             }
         }
 
-        let b_knowledge = knowledge;
-        let mut knowledge = HashMap::<WrappedValue, Equation>::new();
-
         // 単項演算で拡大する（２回まで）
         for _ in 0..2 {
+            let prev_knowledge = knowledge.clone();
             for op in self.unary_ops.iter() {
-                for (_, e) in b_knowledge.iter() {
+                for (_, e) in prev_knowledge.iter() {
                     match Equation::apply_unary(e, op) {
                         Some(equation) => match knowledge.entry(WrappedValue(equation.value)) {
                             Entry::Occupied(mut o) => {
