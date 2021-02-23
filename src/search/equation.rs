@@ -12,7 +12,6 @@ impl Equation {
     /// `Equation`に単項演算子を適用して新しい`Equation`を作成
     pub(super) fn apply_unary(e: &Equation, op: &UnaryOp) -> Option<Equation> {
         let value = op.apply(e.value)?;
-        // tokens = e.tokens + [op.token]
         let mut tokens = e.tokens.clone();
         tokens.push(op.token);
         Some(Equation {
@@ -24,7 +23,6 @@ impl Equation {
 
     pub(super) fn apply_binary(e1: &Equation, e2: &Equation, op: &BinaryOp) -> Option<Equation> {
         let value = op.apply(e1.value, e2.value)?;
-        // tokens = e1.tokens + e2.tokens + [op.token]
         let mut tokens = e1.tokens.clone();
         tokens.append(&mut e2.tokens.clone());
         tokens.push(op.token);
@@ -42,7 +40,7 @@ impl Equation {
             .iter()
             .map(|c| 0xf0 + (c - b'0'))
             .collect();
-        tokens[0] -= 16;
+        tokens[0] -= 16; // 先頭のみ0xeXになるようにする
         let value: f64 = numbers.parse::<i32>().unwrap().into();
         Equation {
             tokens,
