@@ -93,8 +93,8 @@ impl Searcher {
             }
         }
 
-        // 単項演算で拡大する（２回まで）
-        for _ in 0..2 {
+        // 単項演算で拡大する（３回まで）
+        for _ in 0..3 {
             let prev_knowledge = knowledge.clone();
             for op in self.unary_ops.iter() {
                 for (_, e) in prev_knowledge.iter() {
