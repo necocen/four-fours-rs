@@ -72,9 +72,9 @@ impl Searcher {
             // NOTE: 本当はメモ化したいが、所有権の問題からメモを取り回せない（あるいはcloneが必要になる）ので断念
             let knowledge_left = self.knowledge(&key[0..k]);
             let knowledge_right = self.knowledge(&key[k..key.len()]);
-            for (_, e1) in knowledge_left.iter() {
-                for (_, e2) in knowledge_right.iter() {
-                    for op in self.binary_ops.iter() {
+            for op in self.binary_ops.iter() {
+                for (_, e1) in knowledge_left.iter() {
+                    for (_, e2) in knowledge_right.iter() {
                         match Equation::apply_binary(e1, e2, op) {
                             Some(equation) => match knowledge.entry(WrappedValue(equation.value)) {
                                 Entry::Occupied(mut o) => {
