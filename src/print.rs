@@ -30,9 +30,13 @@ pub struct BinaryOpPrinter {
     infix: String,
     suffix: String,
     precedence: i32,
+    /// 左結合性（A * B * C == (A * B) * C）
     left_associative: bool,
+    /// 右結合性（A * B * C == A * (B * C)）
     right_associative: bool,
+    /// 左の項に括弧が必要かどうか
     paren_left: bool,
+    /// 右の項に括弧が必要かどうか
     paren_right: bool,
 }
 
