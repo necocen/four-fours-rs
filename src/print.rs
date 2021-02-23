@@ -12,7 +12,13 @@ pub struct UnaryOpPrinter {
 }
 
 impl UnaryOpPrinter {
-    pub fn new(token: Token, prefix: impl Into<String>, suffix: impl Into<String>, precedence: i32, paren: bool) -> UnaryOpPrinter {
+    pub fn new(
+        token: Token,
+        prefix: impl Into<String>,
+        suffix: impl Into<String>,
+        precedence: i32,
+        paren: bool,
+    ) -> UnaryOpPrinter {
         UnaryOpPrinter {
             token,
             prefix: prefix.into(),
@@ -41,7 +47,17 @@ pub struct BinaryOpPrinter {
 }
 
 impl BinaryOpPrinter {
-    pub fn new(token: Token, prefix: impl Into<String>, infix: impl Into<String>, suffix: impl Into<String>, precedence: i32, left_associative: bool, right_associative: bool, paren_left: bool, paren_right: bool) -> BinaryOpPrinter {
+    pub fn new(
+        token: Token,
+        prefix: impl Into<String>,
+        infix: impl Into<String>,
+        suffix: impl Into<String>,
+        precedence: i32,
+        left_associative: bool,
+        right_associative: bool,
+        paren_left: bool,
+        paren_right: bool,
+    ) -> BinaryOpPrinter {
         BinaryOpPrinter {
             token,
             prefix: prefix.into(),
@@ -118,19 +134,28 @@ impl Printer {
                         let expr2 = stack.pop().unwrap();
                         let expr1 = stack.pop().unwrap();
                         // 括弧が必要な場合は括弧をつける（左側オペランド）
-                        let expr1 = if op.paren_left && (expr1.1 > op.precedence || expr1.1 == op.precedence && !op.left_associative) {
+                        let expr1 = if op.paren_left
+                            && (expr1.1 > op.precedence
+                                || expr1.1 == op.precedence && !op.left_associative)
+                        {
                             self.paren_left.clone() + &expr1.0 + &self.paren_right
                         } else {
                             expr1.0.clone()
                         };
                         // 括弧が必要な場合は括弧をつける（右側オペランド）
-                        let expr2 = if op.paren_right && (expr2.1 > op.precedence || expr2.1 == op.precedence && !op.right_associative) {
+                        let expr2 = if op.paren_right
+                            && (expr2.1 > op.precedence
+                                || expr2.1 == op.precedence && !op.right_associative)
+                        {
                             self.paren_left.clone() + &expr2.0 + &self.paren_right
                         } else {
                             expr2.0.clone()
                         };
                         // prefix + expr1 + infix + expr2 + suffixをpush
-                        stack.push((op.prefix.clone() + &expr1 + &op.infix + &expr2 + &op.suffix, op.precedence));
+                        stack.push((
+                            op.prefix.clone() + &expr1 + &op.infix + &expr2 + &op.suffix,
+                            op.precedence,
+                        ));
                     } else {
                         panic!("Unexpected token appeared: {}", token);
                     }

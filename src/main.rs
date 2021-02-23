@@ -1,6 +1,6 @@
 mod print;
 mod search;
-use print::{Printer, UnaryOpPrinter, BinaryOpPrinter};
+use print::{BinaryOpPrinter, Printer, UnaryOpPrinter};
 use search::{BinaryOp, Equation, Searcher, UnaryOp};
 use std::collections::{hash_map::Entry, HashMap};
 
@@ -49,7 +49,13 @@ fn main() {
     let mul_p = BinaryOpPrinter::new(0x12, "", "*", "", 5, true, true, true, true);
     let div_p = BinaryOpPrinter::new(0x13, "", "/", "", 5, true, false, true, true);
     let pow_p = BinaryOpPrinter::new(0x14, "", "^", "", 3, false, true, true, true);
-    let printer = Printer::new(vec![negate_p, sqrt_p], vec![add_p, sub_p, mul_p, div_p, pow_p], "(", ")", " = ");
+    let printer = Printer::new(
+        vec![negate_p, sqrt_p],
+        vec![add_p, sub_p, mul_p, div_p, pow_p],
+        "(",
+        ")",
+        " = ",
+    );
 
     for n in 0..=1000 {
         if let Some(e) = results.get(&n) {
