@@ -47,7 +47,6 @@ impl PartialEq for WrappedValue {
 impl Eq for WrappedValue {}
 
 pub struct Searcher {
-    knowledge: HashMap<String, Knowledge>,
     unary_ops: Vec<UnaryOp>,
     binary_ops: Vec<BinaryOp>,
 }
@@ -55,7 +54,6 @@ pub struct Searcher {
 impl Searcher {
     pub fn new(unary_ops: Vec<UnaryOp>, binary_ops: Vec<BinaryOp>) -> Searcher {
         Searcher {
-            knowledge: HashMap::new(),
             unary_ops,
             binary_ops,
         }
@@ -71,9 +69,7 @@ impl Searcher {
 
         // 部分列を二項演算で結合する
         for k in 1..key.len() {
-            // TODO: この_knowledgeは必ずメモ化されているようにできるか？（これは参照を返さなければならないはずだが、
-            // この時点での計算になると&mut selfが必要になるのでborrowできない）
-            // つまり、再帰で計算してしまうとうまくいかない。ボトムアップに計算する
+            // NOTE: 本当はメモ化したいが、所有権の問題からメモを取り回せない（あるいはcloneが必要になる）ので断念
             let knowledge_left = self.knowledge(&key[0..k]);
             let knowledge_right = self.knowledge(&key[k..key.len()]);
             for (_, e1) in knowledge_left.iter() {
