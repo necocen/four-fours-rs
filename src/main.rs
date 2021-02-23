@@ -1,5 +1,8 @@
+mod print;
 mod search;
-use search::{BinaryOp, Searcher, UnaryOp};
+use print::Printer;
+use search::{BinaryOp, Equation, Searcher, UnaryOp};
+use std::collections::{hash_map::Entry, HashMap};
 
 fn main() {
     println!("Hello, world!");
@@ -18,10 +21,29 @@ fn main() {
     let searcher = Searcher::new(vec![negate, sqrt], vec![add, sub, mul, div, pow]);
     let knowledge = searcher.knowledge("4444");
 
-    for (_, k) in knowledge.iter() {
+    let mut results = HashMap::<i32, Equation>::new();
+    for (_, e) in knowledge {
         // 整数値のみ出力
-        if k.value > 0f64 && k.value.fract().abs() < 1e-9 {
-            println!("{:?}, {:?}", k.value, k.tokens);
+        if e.value >= 0f64 && e.value < 2000f64 && e.value.fract().abs() < 1e-9 {
+            let rounded = e.value.round() as i32;
+            match results.entry(rounded) {
+                Entry::Occupied(mut o) => {
+                    if o.get().cost > e.cost {
+                        o.insert(e);
+                    }
+                }
+                Entry::Vacant(v) => {
+                    v.insert(e);
+                }
+            }
+        }
+    }
+
+    let printer = Printer::new(vec![], vec![], "(", ")", " = ");
+
+    for n in 0..=1000 {
+        if let Some(e) = results.get(&n) {
+            println!("{}", printer.print(e));
         }
     }
 }
