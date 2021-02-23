@@ -41,7 +41,6 @@ impl PartialEq for WrappedValue {
 
 impl Eq for WrappedValue {}
 
-
 pub struct Searcher {
     knowledge: HashMap<String, Knowledge>,
     unary_ops: Vec<UnaryOp>,
@@ -96,8 +95,8 @@ impl Searcher {
         let b_knowledge = knowledge;
         let mut knowledge = HashMap::<WrappedValue, Equation>::new();
 
-        // 単項演算で拡大する
-        for _ in 0..2 { // 単項演算の最大適用数
+        // 単項演算で拡大する（２回まで）
+        for _ in 0..2 {
             for op in self.unary_ops.iter() {
                 for (_, e) in b_knowledge.iter() {
                     match Equation::apply_unary(e, op) {
@@ -110,29 +109,13 @@ impl Searcher {
                             Entry::Vacant(v) => {
                                 v.insert(equation);
                             }
-                        }
+                        },
                         None => {}
                     }
                 }
             }
         }
+
         knowledge
     }
-
-    // pub fn knowledge(&mut self, numbers: impl Into<String>) -> &Knowledge {
-    //     let key = numbers.into();
-    //     if !self.knowledge.contains_key(&key) {
-    //         for k in 1..key.len() {
-    //             let knowledge_left = self.knowledge(&key[0..k]);
-    //             let knowledge_right = self.knowledge(&key[k..key.len()]);
-    //             println!("{:?}", knowledge_left);
-    //             // for (_, e1) in knowledge_left.into_iter() {
-    //             //     for (_, e2) in knowledge_right.into_iter() {
-    //             //         //Equation::apply_binary(e1, e2, op);
-    //             //     }
-    //             // }
-    //         }
-    //     }
-    //     self.knowledge.get(&key).unwrap()
-    // }
 }

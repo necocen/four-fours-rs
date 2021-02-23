@@ -1,5 +1,5 @@
 mod search;
-use search::{BinaryOp, UnaryOp, Searcher};
+use search::{BinaryOp, Searcher, UnaryOp};
 
 fn main() {
     println!("Hello, world!");
