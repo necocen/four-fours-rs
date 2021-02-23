@@ -47,7 +47,7 @@ fn main() {
     let add_p = BinaryOpPrinter::new(0x10, "", "+", "", 6, true, true, true, true);
     let sub_p = BinaryOpPrinter::new(0x11, "", "-", "", 6, true, false, true, true);
     let mul_p = BinaryOpPrinter::new(0x12, "", "*", "", 5, true, true, true, true);
-    let div_p = BinaryOpPrinter::new(0x13, "", "/", "", 5, false, true, true, true);
+    let div_p = BinaryOpPrinter::new(0x13, "", "/", "", 5, true, false, true, true);
     let pow_p = BinaryOpPrinter::new(0x14, "", "^", "", 3, false, true, true, true);
     let printer = Printer::new(vec![negate_p, sqrt_p], vec![add_p, sub_p, mul_p, div_p, pow_p], "(", ")", " = ");
 
