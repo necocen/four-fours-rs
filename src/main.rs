@@ -17,7 +17,11 @@ fn main() {
     let pow = BinaryOp::new(0x14, 6, |v1, v2| Some(v1.powf(v2)));
     let searcher = Searcher::new(vec![negate, sqrt], vec![add, sub, mul, div, pow]);
     let knowledge = searcher.knowledge("1234");
+
     for (_, k) in knowledge.iter() {
-        println!("{:?}, {:?}", k.value, k.tokens);
+        // 整数値のみ出力
+        if k.value.fract().abs() < 1e-9 {
+            println!("{:?}, {:?}", k.value, k.tokens);
+        }
     }
 }
