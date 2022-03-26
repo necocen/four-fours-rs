@@ -17,7 +17,7 @@ fn main() {
         if n >= TABLE.len() {
             return None;
         }
-        return Some(TABLE[n]);
+        Some(TABLE[n])
     });
     // binary ops
     let add = BinaryOp::new(0x10, 1, |v1, v2| Some(v1 + v2));

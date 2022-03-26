@@ -34,7 +34,7 @@ impl Equation {
     }
 
     /// 探索数値列からその全体を唯一の値として持つ`Equation`を作成
-    pub fn from_numbers(numbers: &String) -> Equation {
+    pub fn from_numbers(numbers: &str) -> Equation {
         let mut tokens: Vec<Token> = numbers
             .as_bytes()
             .iter()

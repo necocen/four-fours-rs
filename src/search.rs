@@ -28,7 +28,7 @@ pub struct WrappedValue(Value);
 
 impl WrappedValue {
     fn key(&self) -> u64 {
-        unsafe { std::mem::transmute(self.0) }
+        self.0.to_bits()
     }
 }
 
@@ -75,8 +75,8 @@ impl Searcher {
             for op in self.binary_ops.iter() {
                 for (_, e1) in knowledge_left.iter() {
                     for (_, e2) in knowledge_right.iter() {
-                        match Equation::apply_binary(e1, e2, op) {
-                            Some(equation) => match knowledge.entry(WrappedValue(equation.value)) {
+                        if let Some(equation) = Equation::apply_binary(e1, e2, op) {
+                            match knowledge.entry(WrappedValue(equation.value)) {
                                 Entry::Occupied(mut o) => {
                                     if o.get().cost > equation.cost {
                                         o.insert(equation);
@@ -85,8 +85,7 @@ impl Searcher {
                                 Entry::Vacant(v) => {
                                     v.insert(equation);
                                 }
-                            },
-                            None => {}
+                            }
                         }
                     }
                 }
@@ -98,8 +97,8 @@ impl Searcher {
             let prev_knowledge = knowledge.clone();
             for op in self.unary_ops.iter() {
                 for (_, e) in prev_knowledge.iter() {
-                    match Equation::apply_unary(e, op) {
-                        Some(equation) => match knowledge.entry(WrappedValue(equation.value)) {
+                    if let Some(equation) = Equation::apply_unary(e, op) {
+                        match knowledge.entry(WrappedValue(equation.value)) {
                             Entry::Occupied(mut o) => {
                                 if o.get().cost > equation.cost {
                                     o.insert(equation);
@@ -108,8 +107,7 @@ impl Searcher {
                             Entry::Vacant(v) => {
                                 v.insert(equation);
                             }
-                        },
-                        None => {}
+                        }
                     }
                 }
             }

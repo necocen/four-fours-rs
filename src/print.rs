@@ -47,6 +47,7 @@ pub struct BinaryOpPrinter {
 }
 
 impl BinaryOpPrinter {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         token: Token,
         prefix: impl Into<String>,
@@ -164,6 +165,6 @@ impl Printer {
         }
 
         assert!(stack.len() == 1);
-        return n.to_string() + &self.equal + &stack[0].0;
+        n.to_string() + &self.equal + &stack[0].0
     }
 }
