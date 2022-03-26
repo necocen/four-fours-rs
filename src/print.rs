@@ -79,7 +79,6 @@ pub struct Printer {
     binary_ops: Vec<BinaryOpPrinter>,
     paren_left: String,
     paren_right: String,
-    equal: String,
 }
 
 impl Printer {
@@ -88,20 +87,16 @@ impl Printer {
         binary_ops: Vec<BinaryOpPrinter>,
         paren_left: impl Into<String>,
         paren_right: impl Into<String>,
-        equal: impl Into<String>,
     ) -> Printer {
         Printer {
             unary_ops,
             binary_ops,
             paren_left: paren_left.into(),
             paren_right: paren_right.into(),
-            equal: equal.into(),
         }
     }
 
     pub fn print(&self, equation: &Equation) -> String {
-        let n = equation.value.round() as i32;
-
         // 部分式文字列と、最後に追加された演算子の優先度のペアのスタック
         let mut stack = Vec::<(String, i32)>::new();
 
@@ -165,6 +160,6 @@ impl Printer {
         }
 
         assert!(stack.len() == 1);
-        n.to_string() + &self.equal + &stack[0].0
+        stack[0].0.to_string()
     }
 }
