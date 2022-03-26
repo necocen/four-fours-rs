@@ -21,7 +21,7 @@ pub use binary_op::*;
 pub use equation::*;
 pub use unary_op::*;
 
-type Knowledge = HashMap<WrappedValue, Equation>;
+pub type Knowledge = HashMap<WrappedValue, Equation>;
 
 #[derive(Debug, Copy, Clone)]
 pub struct WrappedValue(Value);
@@ -59,19 +59,23 @@ impl Searcher {
         }
     }
 
-    pub fn knowledge(&self, numbers: impl Into<String>) -> Knowledge {
-        let key: String = numbers.into();
+    pub fn search(&self, memo: &mut HashMap<String, Knowledge>, numbers: &str) {
+        if memo.contains_key(numbers) {
+            return;
+        }
+        log::info!("Start searching for {numbers}");
         let mut knowledge = HashMap::<WrappedValue, Equation>::new();
-
         // 数値単独での表現
-        let e = Equation::from_numbers(&key);
+        let e = Equation::from_numbers(numbers);
         knowledge.insert(WrappedValue(e.value), e);
 
-        // 部分列を二項演算で結合する
-        for k in 1..key.len() {
-            // NOTE: 本当はメモ化したいが、所有権の問題からメモを取り回せない（あるいはcloneが必要になる）ので断念
-            let knowledge_left = self.knowledge(&key[0..k]);
-            let knowledge_right = self.knowledge(&key[k..key.len()]);
+        for i in 1..numbers.len() {
+            let (key_left, key_right) = numbers.split_at(i);
+            log::info!("Start combining {key_left} and {key_right}");
+            self.search(memo, key_left);
+            self.search(memo, key_right);
+            let knowledge_left = &memo[key_left];
+            let knowledge_right = &memo[key_right];
             for op in self.binary_ops.iter() {
                 for (_, e1) in knowledge_left.iter() {
                     for (_, e2) in knowledge_right.iter() {
@@ -93,7 +97,8 @@ impl Searcher {
         }
 
         // 単項演算で拡大する（３回まで）
-        for _ in 0..3 {
+        for i in 0..3 {
+            log::info!("Start applying unary ops to {numbers} - {}", i + 1);
             let prev_knowledge = knowledge.clone();
             for op in self.unary_ops.iter() {
                 for (_, e) in prev_knowledge.iter() {
@@ -113,6 +118,7 @@ impl Searcher {
             }
         }
 
-        knowledge
+        log::info!("End searching for {numbers}");
+        memo.insert(numbers.to_string(), knowledge);
     }
 }

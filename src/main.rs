@@ -1,10 +1,11 @@
 mod print;
 mod search;
 use print::{BinaryOpPrinter, Printer, UnaryOpPrinter};
-use search::{BinaryOp, Equation, Searcher, UnaryOp};
+use search::{BinaryOp, Equation, Knowledge, Searcher, UnaryOp};
 use std::collections::{hash_map::Entry, HashMap};
 
 fn main() {
+    env_logger::init();
     // unary ops
     let negate = UnaryOp::new(0x00, 2, |v| Some(-v));
     let sqrt = UnaryOp::new(0x01, 4, |v| if v < 0f64 { None } else { Some(v.sqrt()) });
@@ -32,21 +33,24 @@ fn main() {
 
     // 探索
     let searcher = Searcher::new(vec![negate, sqrt, fact], vec![add, sub, mul, div, pow]);
-    let knowledge = searcher.knowledge("4444");
+    let mut memo = HashMap::<String, Knowledge>::new();
+    let numbers = "4444";
+    searcher.search(&mut memo, numbers);
+    let knowledge = &memo[numbers];
 
     // 整数値のみを出力する
     let mut results = HashMap::<i32, Equation>::new();
-    for (_, e) in knowledge {
+    for (_, e) in knowledge.iter() {
         if e.value >= 0f64 && e.value < 2000f64 && e.value.fract().abs() < 1e-9 {
             let rounded = e.value.round() as i32;
             match results.entry(rounded) {
                 Entry::Occupied(mut o) => {
                     if o.get().cost > e.cost {
-                        o.insert(e);
+                        o.insert(e.clone());
                     }
                 }
                 Entry::Vacant(v) => {
-                    v.insert(e);
+                    v.insert(e.clone());
                 }
             }
         }
