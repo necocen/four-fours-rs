@@ -6,7 +6,15 @@ use std::collections::{hash_map::Entry, HashMap};
 
 fn main() {
     env_logger::init();
-    // unary ops
+    let results = search("4444");
+    for n in 0..=1000 {
+        if let Some(e) = results.get(&n) {
+            println!("{}", e);
+        }
+    }
+}
+
+fn search(numbers: &str) -> HashMap<i32, String> {
     let negate = UnaryOp::new(0x00, 2, |v| Some(-v));
     let sqrt = UnaryOp::new(0x01, 4, |v| if v < 0f64 { None } else { Some(v.sqrt()) });
     let fact = UnaryOp::new(0x02, 6, |v| {
@@ -34,7 +42,6 @@ fn main() {
     // 探索
     let searcher = Searcher::new(vec![negate, sqrt, fact], vec![add, sub, mul, div, pow]);
     let mut memo = HashMap::<String, Knowledge>::new();
-    let numbers = "4444";
     searcher.search(&mut memo, numbers);
     let knowledge = &memo[numbers];
 
@@ -73,9 +80,8 @@ fn main() {
         " = ",
     );
 
-    for n in 0..=1000 {
-        if let Some(e) = results.get(&n) {
-            println!("{}", printer.print(e));
-        }
-    }
+    results
+        .into_iter()
+        .map(|(n, result)| (n, printer.print(&result)))
+        .collect()
 }
