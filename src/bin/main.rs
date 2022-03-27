@@ -1,18 +1,12 @@
-extern crate wasm_bindgen;
+use four_fours::{
+    print::{BinaryOpPrinter, Printer, UnaryOpPrinter},
+    search::{BinaryOp, UnaryOp},
+    search_int,
+};
 
-pub mod print;
-pub mod search;
-use js_sys::Map;
-pub use print::*;
-use print::{BinaryOpPrinter, Printer, UnaryOpPrinter};
-use search::{BinaryOp, Equation, Knowledge, Searcher, UnaryOp};
-use std::collections::{hash_map::Entry, HashMap};
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen(js_name = "searchWasm")]
-pub fn search_wasm(numbers: &str) -> Map {
-    wasm_logger::init(wasm_logger::Config::default());
-    let map = Map::new();
+fn main() {
+    env_logger::init();
+    let numbers = "4444";
     // 演算子
     let negate = UnaryOp::new(0x00, 2, |v| Some(-v));
     let sqrt = UnaryOp::new(0x01, 4, |v| if v < 0f64 { None } else { Some(v.sqrt()) });
@@ -53,46 +47,19 @@ pub fn search_wasm(numbers: &str) -> Map {
         "(",
         ")",
     );
-    search_int(
+
+    let mut results = search_int(
         vec![negate, sqrt, fact],
         vec![add, sub, mul, div, pow],
         numbers,
     )
     .into_iter()
     .map(|(n, result)| (n, printer.print(&result)))
-    .for_each(|(n, result)| {
-        map.set(&JsValue::from(n), &JsValue::from(result));
-    });
-    map
-}
+    .filter(|(n, _)| *n >= 0 && *n <= 1000)
+    .collect::<Vec<_>>();
+    results.sort_by_key(|(n, _)| *n);
 
-pub fn search_int(
-    u_ops: Vec<UnaryOp>,
-    b_ops: Vec<BinaryOp>,
-    numbers: &str,
-) -> HashMap<i32, Equation> {
-    // 探索
-    let searcher = Searcher::new(u_ops, b_ops);
-    let mut memo = HashMap::<String, Knowledge>::new();
-    searcher.search(&mut memo, numbers);
-    let knowledge = &memo[numbers];
-
-    // 整数値のみを出力する
-    let mut results = HashMap::<i32, Equation>::new();
-    for (_, e) in knowledge.iter() {
-        if e.value >= 0f64 && e.value < 2000f64 && e.value.fract().abs() < 1e-9 {
-            let rounded = e.value.round() as i32;
-            match results.entry(rounded) {
-                Entry::Occupied(mut o) => {
-                    if o.get().cost > e.cost {
-                        o.insert(e.clone());
-                    }
-                }
-                Entry::Vacant(v) => {
-                    v.insert(e.clone());
-                }
-            }
-        }
+    for (n, e) in results {
+        println!("{n} = {e}");
     }
-    results
 }
