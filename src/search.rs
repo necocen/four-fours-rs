@@ -19,6 +19,7 @@ use std::{
 
 pub use binary_op::*;
 pub use equation::*;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 pub use unary_op::*;
 
 pub type Knowledge = HashMap<WrappedValue, Equation>;
@@ -76,21 +77,26 @@ impl Searcher {
             self.search(memo, key_right);
             let knowledge_left = &memo[key_left];
             let knowledge_right = &memo[key_right];
-            for op in self.binary_ops.iter() {
-                for (_, e1) in knowledge_left.iter() {
-                    for (_, e2) in knowledge_right.iter() {
-                        if let Some(equation) = Equation::apply_binary(e1, e2, op) {
-                            match knowledge.entry(WrappedValue(equation.value)) {
-                                Entry::Occupied(mut o) => {
-                                    if o.get().cost > equation.cost {
-                                        o.insert(equation);
-                                    }
-                                }
-                                Entry::Vacant(v) => {
-                                    v.insert(equation);
-                                }
-                            }
+            let combined = self
+                .binary_ops
+                .par_iter()
+                .flat_map(|op| {
+                    knowledge_left.par_iter().flat_map(|(_, e1)| {
+                        knowledge_right
+                            .par_iter()
+                            .filter_map(|(_, e2)| Equation::apply_binary(e1, e2, op))
+                    })
+                })
+                .collect::<Vec<_>>();
+            for equation in combined {
+                match knowledge.entry(WrappedValue(equation.value)) {
+                    Entry::Occupied(mut o) => {
+                        if o.get().cost > equation.cost {
+                            o.insert(equation);
                         }
+                    }
+                    Entry::Vacant(v) => {
+                        v.insert(equation);
                     }
                 }
             }
@@ -99,20 +105,24 @@ impl Searcher {
         // 単項演算で拡大する（３回まで）
         for i in 0..3 {
             log::info!("Start applying unary ops to {numbers} - {}", i + 1);
-            let prev_knowledge = knowledge.clone();
-            for op in self.unary_ops.iter() {
-                for (_, e) in prev_knowledge.iter() {
-                    if let Some(equation) = Equation::apply_unary(e, op) {
-                        match knowledge.entry(WrappedValue(equation.value)) {
-                            Entry::Occupied(mut o) => {
-                                if o.get().cost > equation.cost {
-                                    o.insert(equation);
-                                }
-                            }
-                            Entry::Vacant(v) => {
-                                v.insert(equation);
-                            }
+            let applied = self
+                .unary_ops
+                .par_iter()
+                .flat_map(|op| {
+                    knowledge
+                        .par_iter()
+                        .filter_map(|(_, e)| Equation::apply_unary(e, op))
+                })
+                .collect::<Vec<_>>();
+            for equation in applied {
+                match knowledge.entry(WrappedValue(equation.value)) {
+                    Entry::Occupied(mut o) => {
+                        if o.get().cost > equation.cost {
+                            o.insert(equation);
                         }
+                    }
+                    Entry::Vacant(v) => {
+                        v.insert(equation);
                     }
                 }
             }
