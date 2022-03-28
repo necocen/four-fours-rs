@@ -4,31 +4,43 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
     mode: 'development',
     entry: './src/index.tsx',
+    output: {
+        filename: "index.js",
+        path: path.resolve(__dirname, "build"),
+    },
     resolve: {
-        extensions: ['.js', '.ts', '.tsx', '.jsx']
+        extensions: ['.mjs', '.js', '.ts', '.tsx', '.jsx']
     },
     module: {
         rules: [
             {
-                test: /\.m?(js|jsx|ts|tsx)$/,
-                exclude: /(node_modules|bower_components)/,
+                test: /\.tsx?$/,
                 use: {
-                    // `.swcrc` can be used to configure swc
-                    loader: 'swc-loader'
+                    loader: 'ts-loader'
                 }
             }
         ]
     },
     experiments: {
         asyncWebAssembly: true,
-        syncWebAssembly: true
+        syncWebAssembly: true,
+        topLevelAwait: true
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: path.join(__dirname, 'public/index.html')
+            template: path.join(__dirname, 'public/index.html'),
+            scriptLoading: "blocking"
         })
     ],
     devServer: {
-        liveReload: true
-    }
+        liveReload: true,
+        headers: {
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp"
+        }
+    },
+    ignoreWarnings: [
+        /Circular dependency between chunks with runtime/
+    ],
+    target: ["web", "es5"]
 };

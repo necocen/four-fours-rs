@@ -1,12 +1,19 @@
-use four_fours::{
+use crate::{
     print::{BinaryOpPrinter, Printer, UnaryOpPrinter},
     search::{BinaryOp, UnaryOp},
     search_int,
 };
+use js_sys::Map;
+use wasm_bindgen::prelude::*;
 
-fn main() {
-    env_logger::init();
-    let numbers = "4444";
+#[wasm_bindgen(js_name = "initLog")]
+pub fn init_log() {
+    wasm_logger::init(wasm_logger::Config::default());
+}
+
+#[wasm_bindgen(js_name = "searchWasm")]
+pub fn search_wasm(numbers: &str) -> Map {
+    let map = Map::new();
     // 演算子
     let negate = UnaryOp::new(0x00, 2, |v| Some(-v));
     let sqrt = UnaryOp::new(0x01, 4, |v| if v < 0f64 { None } else { Some(v.sqrt()) });
@@ -47,19 +54,15 @@ fn main() {
         "(",
         ")",
     );
-
-    let mut results = search_int(
+    search_int(
         vec![negate, sqrt, fact],
         vec![add, sub, mul, div, pow],
         numbers,
     )
     .into_iter()
     .map(|(n, result)| (n, printer.print(&result)))
-    .filter(|(n, _)| *n >= 0 && *n <= 1000)
-    .collect::<Vec<_>>();
-    results.sort_by_key(|(n, _)| *n);
-
-    for (n, e) in results {
-        println!("{} = {}", n, e);
-    }
+    .for_each(|(n, result)| {
+        map.set(&JsValue::from(n), &JsValue::from(result));
+    });
+    map
 }

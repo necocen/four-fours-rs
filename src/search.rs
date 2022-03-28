@@ -64,7 +64,7 @@ impl Searcher {
         if memo.contains_key(numbers) {
             return;
         }
-        log::info!("Start searching for {numbers}");
+        log::info!("Start searching for {}", numbers);
         let mut knowledge = HashMap::<WrappedValue, Equation>::new();
         // 数値単独での表現
         let e = Equation::from_numbers(numbers);
@@ -72,7 +72,7 @@ impl Searcher {
 
         for i in 1..numbers.len() {
             let (key_left, key_right) = numbers.split_at(i);
-            log::info!("Start combining {key_left} and {key_right}");
+            log::info!("Start combining {} and {}", key_left, key_right);
             self.search(memo, key_left);
             self.search(memo, key_right);
             let knowledge_left = &memo[key_left];
@@ -81,13 +81,14 @@ impl Searcher {
                 .binary_ops
                 .par_iter()
                 .flat_map(|op| {
-                    knowledge_left.par_iter().flat_map(|(_, e1)| {
+                    knowledge_left.par_iter().flat_map(move |(_, e1)| {
                         knowledge_right
                             .par_iter()
-                            .filter_map(|(_, e2)| Equation::apply_binary(e1, e2, op))
+                            .filter_map(move |(_, e2)| Equation::apply_binary(e1, e2, op))
                     })
                 })
                 .collect::<Vec<_>>();
+            log::debug!("Merging...");
             for equation in combined {
                 match knowledge.entry(WrappedValue(equation.value)) {
                     Entry::Occupied(mut o) => {
@@ -104,16 +105,17 @@ impl Searcher {
 
         // 単項演算で拡大する（３回まで）
         for i in 0..3 {
-            log::info!("Start applying unary ops to {numbers} - {}", i + 1);
+            log::info!("Start applying unary ops to {} - {}", numbers, i + 1);
             let applied = self
                 .unary_ops
                 .par_iter()
                 .flat_map(|op| {
                     knowledge
                         .par_iter()
-                        .filter_map(|(_, e)| Equation::apply_unary(e, op))
+                        .filter_map(move |(_, e)| Equation::apply_unary(e, op))
                 })
                 .collect::<Vec<_>>();
+            log::debug!("Merging...");
             for equation in applied {
                 match knowledge.entry(WrappedValue(equation.value)) {
                     Entry::Occupied(mut o) => {
@@ -128,7 +130,7 @@ impl Searcher {
             }
         }
 
-        log::info!("End searching for {numbers}");
+        log::info!("End searching for {}", numbers);
         memo.insert(numbers.to_string(), knowledge);
     }
 }
