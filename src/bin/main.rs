@@ -1,3 +1,5 @@
+use std::env;
+
 use four_fours::{
     print::{BinaryOpPrinter, Printer, UnaryOpPrinter},
     search::{BinaryOp, UnaryOp},
@@ -6,7 +8,19 @@ use four_fours::{
 
 fn main() {
     env_logger::init();
-    let numbers = "4444";
+    let args = env::args().skip(1).collect::<Vec<_>>();
+    let numbers: &str;
+    if let Some(arg) = args.first() {
+        if arg.chars().all(|c| ('0'..='9').contains(&c)) {
+            numbers = arg;
+        } else {
+            eprintln!("Given arg contains invalid character: {}", arg);
+            numbers = "4444";
+        }
+    } else {
+        numbers = "4444";
+    }
+
     // 演算子
     let negate = UnaryOp::new(0x00, 2, |v| Some(-v));
     let sqrt = UnaryOp::new(0x01, 4, |v| if v < 0f64 { None } else { Some(v.sqrt()) });
