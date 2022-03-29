@@ -19,10 +19,7 @@ use std::{
 
 pub use binary_op::*;
 pub use equation::*;
-use rayon::{
-    iter::{once, IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator},
-    slice::ParallelSliceMut,
-};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 pub use unary_op::*;
 
 pub type Knowledge = HashMap<WrappedValue, Equation>;
@@ -68,6 +65,10 @@ impl Searcher {
             return;
         }
         log::info!("Start searching for {}", numbers);
+        let mut knowledge = HashMap::<WrappedValue, Equation>::new();
+        // 数値単独での表現
+        let e = Equation::from_numbers(numbers);
+        knowledge.insert(WrappedValue(e.value), e);
 
         for i in 1..numbers.len() {
             let (key_left, key_right) = numbers.split_at(i);
@@ -75,46 +76,49 @@ impl Searcher {
             self.search(memo, key_right);
         }
 
-        log::info!("Start applying binary ops to {}", numbers);
-        log::debug!("Combining...");
-        let mut equations = (1..numbers.len())
-            .map(|i| {
+        let combined = (1..numbers.len())
+            .into_par_iter()
+            .flat_map(|i| {
                 let (key_left, key_right) = numbers.split_at(i);
                 let knowledge_left = &memo[key_left];
                 let knowledge_right = &memo[key_right];
-                let combined = self.binary_ops.par_iter().flat_map(move |op| {
+                self.binary_ops.par_iter().flat_map(move |op| {
                     knowledge_left.par_iter().flat_map(move |(_, e1)| {
                         knowledge_right
                             .par_iter()
                             .filter_map(move |(_, e2)| Equation::apply_binary(e1, e2, op))
                     })
-                });
-                combined
+                })
             })
-            .par_bridge()
-            .flatten()
-            .chain(once(Equation::from_numbers(numbers)))
             .collect::<Vec<_>>();
-        log::debug!("Sorting...");
-        equations.par_sort_by_key(|e| -(e.cost as i32));
         log::debug!("Merging...");
-        let mut knowledge = equations
-            .into_par_iter()
-            .map(|e| (WrappedValue(e.value), e))
-            .collect::<HashMap<_, _>>();
+        for equation in combined {
+            match knowledge.entry(WrappedValue(equation.value)) {
+                Entry::Occupied(mut o) => {
+                    if o.get().cost > equation.cost {
+                        o.insert(equation);
+                    }
+                }
+                Entry::Vacant(v) => {
+                    v.insert(equation);
+                }
+            }
+        }
 
         // 単項演算で拡大する（３回まで）
         for i in 0..3 {
             log::info!("Start applying unary ops to {} - {}", numbers, i + 1);
-            let equations = knowledge
+            let applied = self
+                .unary_ops
                 .par_iter()
-                .flat_map(|(_, e)| {
-                    self.unary_ops
+                .flat_map(|op| {
+                    knowledge
                         .par_iter()
-                        .filter_map(move |op| Equation::apply_unary(e, op))
+                        .filter_map(move |(_, e)| Equation::apply_unary(e, op))
                 })
                 .collect::<Vec<_>>();
-            for equation in equations {
+            log::debug!("Merging...");
+            for equation in applied {
                 match knowledge.entry(WrappedValue(equation.value)) {
                     Entry::Occupied(mut o) => {
                         if o.get().cost > equation.cost {
@@ -127,6 +131,7 @@ impl Searcher {
                 }
             }
         }
+
         log::info!("End searching for {}", numbers);
         memo.insert(numbers.to_string(), knowledge);
     }
