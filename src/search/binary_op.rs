@@ -1,6 +1,6 @@
 use super::{Token, Value};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct BinaryOp {
     /// トークン
     pub token: Token,

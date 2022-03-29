@@ -12,14 +12,15 @@ pub type Value = f64;
 /// のとき、数字`n`を表す。
 /// `0xeX`は先頭桁を示し、`0xfX`は残りの桁を示す。
 pub type Token = u8;
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    hash,
-};
+use std::{collections::HashMap, hash};
 
 pub use binary_op::*;
 pub use equation::*;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use itertools::Itertools;
+use rayon::{
+    iter::{once, IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator},
+    slice::ParallelSliceMut,
+};
 pub use unary_op::*;
 
 pub type Knowledge = HashMap<WrappedValue, Equation>;
@@ -65,70 +66,60 @@ impl Searcher {
             return;
         }
         log::info!("Start searching for {}", numbers);
-        let mut knowledge = HashMap::<WrappedValue, Equation>::new();
-        // 数値単独での表現
-        let e = Equation::from_numbers(numbers);
-        knowledge.insert(WrappedValue(e.value), e);
 
         for i in 1..numbers.len() {
             let (key_left, key_right) = numbers.split_at(i);
-            log::info!("Start combining {} and {}", key_left, key_right);
             self.search(memo, key_left);
             self.search(memo, key_right);
-            let knowledge_left = &memo[key_left];
-            let knowledge_right = &memo[key_right];
-            let combined = self
-                .binary_ops
-                .par_iter()
-                .flat_map(|op| {
+        }
+
+        log::info!("Start applying binary ops to {}", numbers);
+        log::debug!("Combining...");
+        let mut knowledge = (1..numbers.len())
+            .map(|i| {
+                let (key_left, key_right) = numbers.split_at(i);
+                let knowledge_left = &memo[key_left];
+                let knowledge_right = &memo[key_right];
+                let combined = self.binary_ops.par_iter().flat_map(move |op| {
                     knowledge_left.par_iter().flat_map(move |(_, e1)| {
                         knowledge_right
                             .par_iter()
                             .filter_map(move |(_, e2)| Equation::apply_binary(e1, e2, op))
                     })
-                })
-                .collect::<Vec<_>>();
-            log::debug!("Merging...");
-            for equation in combined {
-                match knowledge.entry(WrappedValue(equation.value)) {
-                    Entry::Occupied(mut o) => {
-                        if o.get().cost > equation.cost {
-                            o.insert(equation);
-                        }
-                    }
-                    Entry::Vacant(v) => {
-                        v.insert(equation);
-                    }
-                }
-            }
-        }
+                });
+                combined
+            })
+            .par_bridge()
+            .flatten()
+            .chain(once(Equation::from_numbers(numbers)))
+            .collect::<Vec<_>>();
 
         // 単項演算で拡大する（３回まで）
         for i in 0..3 {
             log::info!("Start applying unary ops to {} - {}", numbers, i + 1);
-            let applied = self
-                .unary_ops
+            let mut applied = knowledge
                 .par_iter()
-                .flat_map(|op| {
-                    knowledge
+                .flat_map(|e| {
+                    self.unary_ops
                         .par_iter()
-                        .filter_map(move |(_, e)| Equation::apply_unary(e, op))
+                        .filter_map(move |op| Equation::apply_unary(e, op))
                 })
                 .collect::<Vec<_>>();
+            applied.extend(knowledge.into_iter());
+            log::debug!("Sorting...");
+            applied.par_sort_unstable_by_key(|e| (e.cost as i32));
             log::debug!("Merging...");
-            for equation in applied {
-                match knowledge.entry(WrappedValue(equation.value)) {
-                    Entry::Occupied(mut o) => {
-                        if o.get().cost > equation.cost {
-                            o.insert(equation);
-                        }
-                    }
-                    Entry::Vacant(v) => {
-                        v.insert(equation);
-                    }
-                }
-            }
+
+            knowledge = applied
+                .into_iter()
+                .unique_by(|e| WrappedValue(e.value))
+                .collect();
         }
+
+        let knowledge = knowledge
+            .into_par_iter()
+            .map(|e| (WrappedValue(e.value), e))
+            .collect::<HashMap<_, _>>();
 
         log::info!("End searching for {}", numbers);
         memo.insert(numbers.to_string(), knowledge);
