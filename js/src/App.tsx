@@ -6,11 +6,16 @@ const search = await fourFours();
 export const App = memo(() => {
     const [numbers, setNumbers] = useState<string>("");
     const [result, setResult] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const updateResult = async (numbers: string) => {
+        setIsLoading(true);
         if (numbers == "") {
+            setIsLoading(false);
             setResult([]);
         } else {
+            setResult([]);
             const result = await search(numbers);
+            setIsLoading(false);
             setResult([...Array(1001).keys()].map((i) => (result.get(i) ? `${i} = ${result.get(i)}` : undefined)).filter((s) => !!s).map((s) => s as string));
         }
     };
@@ -21,6 +26,9 @@ export const App = memo(() => {
             <input type="text" value={numbers} onChange={(x) => setNumbers(x.target.value)} />
             <input type="submit" value="Calc" />
         </form>
-        {result.map((result, i) => (<li key={i}>{result}</li>))}
+        <ul>
+            {result.map((result, i) => (<li key={i}>{result}</li>))}
+        </ul>
+        {isLoading && "Loading..."}
     </>;
 });

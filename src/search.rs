@@ -19,6 +19,7 @@ use std::{
 
 pub use binary_op::*;
 pub use equation::*;
+#[cfg(feature = "with-rayon")]
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 pub use unary_op::*;
 
@@ -76,47 +77,90 @@ impl Searcher {
             self.search(memo, key_right);
         }
 
-        let combined = (1..numbers.len())
-            .into_par_iter()
-            .flat_map(|i| {
-                let (key_left, key_right) = numbers.split_at(i);
-                let knowledge_left = &memo[key_left];
-                let knowledge_right = &memo[key_right];
-                self.binary_ops.par_iter().flat_map(move |op| {
-                    knowledge_left.par_iter().flat_map(move |(_, e1)| {
-                        knowledge_right
-                            .par_iter()
-                            .filter_map(move |(_, e2)| Equation::apply_binary(e1, e2, op))
+        log::debug!("Combining...");
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "with-rayon")] {
+                let combined =  (1..numbers.len())
+                    .into_par_iter()
+                    .flat_map(|i| {
+                        let (key_left, key_right) = numbers.split_at(i);
+                        let knowledge_left = &memo[key_left];
+                        let knowledge_right = &memo[key_right];
+                        self.binary_ops.par_iter().flat_map(move |op| {
+                            knowledge_left.par_iter().flat_map(move |(_, e1)| {
+                                knowledge_right
+                                    .par_iter()
+                                    .filter_map(move |(_, e2)| Equation::apply_binary(e1, e2, op))
+                            })
+                        })
                     })
-                })
-            })
-            .collect::<Vec<_>>();
-        log::debug!("Merging...");
-        for equation in combined {
-            match knowledge.entry(WrappedValue(equation.value)) {
-                Entry::Occupied(mut o) => {
-                    if o.get().cost > equation.cost {
-                        o.insert(equation);
+                    .collect::<Vec<_>>();
+                log::debug!("Merging...");
+                for equation in combined {
+                    match knowledge.entry(WrappedValue(equation.value)) {
+                        Entry::Occupied(mut o) => {
+                            if o.get().cost > equation.cost {
+                                o.insert(equation);
+                            }
+                        }
+                        Entry::Vacant(v) => {
+                            v.insert(equation);
+                        }
                     }
                 }
-                Entry::Vacant(v) => {
-                    v.insert(equation);
-                }
+            } else {
+                (1..numbers.len())
+                    .into_iter()
+                    .flat_map(|i| {
+                        let (key_left, key_right) = numbers.split_at(i);
+                        let knowledge_left = &memo[key_left];
+                        let knowledge_right = &memo[key_right];
+                        self.binary_ops.iter().flat_map(move |op| {
+                            knowledge_left.iter().flat_map(move |(_, e1)| {
+                                knowledge_right
+                                    .iter()
+                                    .filter_map(move |(_, e2)| Equation::apply_binary(e1, e2, op))
+                            })
+                        })
+                    }).for_each(|equation| {
+                        match knowledge.entry(WrappedValue(equation.value)) {
+                            Entry::Occupied(mut o) => {
+                                if o.get().cost > equation.cost {
+                                    o.insert(equation);
+                                }
+                            }
+                            Entry::Vacant(v) => {
+                                v.insert(equation);
+                            }
+                        }
+                    })
             }
         }
 
         // 単項演算で拡大する（３回まで）
         for i in 0..3 {
             log::info!("Start applying unary ops to {} - {}", numbers, i + 1);
-            let applied = self
-                .unary_ops
-                .par_iter()
-                .flat_map(|op| {
-                    knowledge
-                        .par_iter()
-                        .filter_map(move |(_, e)| Equation::apply_unary(e, op))
-                })
-                .collect::<Vec<_>>();
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "with-rayon")] {
+                    let applied = self.unary_ops
+                    .par_iter()
+                    .flat_map(|op| {
+                        knowledge
+                            .par_iter()
+                            .filter_map(move |(_, e)| Equation::apply_unary(e, op))
+                    })
+                    .collect::<Vec<_>>();
+                } else {
+                    let applied = self.unary_ops
+                    .iter()
+                    .flat_map(|op| {
+                        knowledge
+                            .iter()
+                            .filter_map(move |(_, e)| Equation::apply_unary(e, op))
+                    })
+                    .collect::<Vec<_>>();
+                }
+            }
             log::debug!("Merging...");
             for equation in applied {
                 match knowledge.entry(WrappedValue(equation.value)) {

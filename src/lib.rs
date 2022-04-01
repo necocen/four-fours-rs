@@ -9,7 +9,7 @@ pub mod wasm;
 pub use print::*;
 use search::{BinaryOp, Equation, Knowledge, Searcher, UnaryOp};
 use std::collections::{hash_map::Entry, HashMap};
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "with-rayon"))]
 pub use wasm_bindgen_rayon::init_thread_pool;
 
 pub fn search_int(
