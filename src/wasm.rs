@@ -16,7 +16,10 @@ pub fn search_wasm(numbers: &str) -> Map {
     let map = Map::new();
     // 演算子
     let negate = UnaryOp::new(0x00, 2, |v| Some(-v));
-    let sqrt = UnaryOp::new(0x01, 4, |v| if v < 0f64 { None } else { Some(v.sqrt()) });
+    let sqrt = UnaryOp::new(0x01, 4, |v| match v {
+        x if x > 0f64 && x != 0f64 && x != 1f64 => Some(v.sqrt()),
+        _ => None,
+    });
     let fact = UnaryOp::new(0x02, 6, |v| {
         const TABLE: [f64; 9] = [1., 1., 2., 6., 24., 120., 720., 5040., 40320.];
         if v < 0f64 || v > (i32::MAX as f64) || v.fract().abs() > f64::EPSILON {
