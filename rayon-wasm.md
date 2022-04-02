@@ -16,17 +16,18 @@ rustflags = ["-C", "target-feature=+atomics,+bulk-memory,+mutable-globals"]
 build-std = ["panic_abort", "std"]
 ```
 
-3. Pass `--target web` option to `wasm-pack` command.
-4. Open `js/wasm.ts` and uncomment these lines:
+3. Open `js/wasm.ts` and uncomment these lines:
 
 ```ts
     // await fourFours.default(); // init
     // await fourFours.initThreadPool(navigator.hardwareConcurrency);
 ```
 
+4. Pass `--target web` option to `wasm-pack` command.
 5. Build and run it.
 
 ```sh
+rustup override set nightly-2021-07-29
 wasm-pack build --target web --features with-rayon
 cd js
 npm i
