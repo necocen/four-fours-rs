@@ -14,9 +14,15 @@ export const App = memo(() => {
             setResult([]);
         } else {
             setResult([]);
-            const result = await search(numbers);
-            setIsLoading(false);
-            setResult([...Array(1001).keys()].map((i) => (result.get(i) ? `${i} = ${result.get(i)}` : undefined)).filter((s) => !!s).map((s) => s as string));
+            try {
+                const result = await search(numbers);
+                setResult([...Array(1001).keys()].map((i) => (result.get(i) ? `${i} = ${result.get(i)}` : undefined)).filter((s) => !!s).map((s) => s as string));
+            } catch (error: any) {
+                console.error(error.toString());
+                setResult([]);
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
