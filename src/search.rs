@@ -19,11 +19,12 @@ use std::{
 
 pub use binary_op::*;
 pub use equation::*;
+use fnv::FnvHashMap;
 #[cfg(feature = "with-rayon")]
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 pub use unary_op::*;
 
-pub type Knowledge = HashMap<WrappedValue, Equation>;
+pub type Knowledge = FnvHashMap<WrappedValue, Equation>;
 
 #[derive(Debug, Copy, Clone)]
 pub struct WrappedValue(Value);
@@ -66,7 +67,7 @@ impl Searcher {
             return;
         }
         log::info!("Start searching for {}", numbers);
-        let mut knowledge = HashMap::<WrappedValue, Equation>::new();
+        let mut knowledge = FnvHashMap::<WrappedValue, Equation>::default();
         // 数値単独での表現
         let e = Equation::from_numbers(numbers);
         knowledge.insert(WrappedValue(e.value), e);

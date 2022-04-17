@@ -19,6 +19,7 @@ lto = true
 [dependencies]
 cfg-if = "1.0.0"
 env_logger = "0.9.0"
+fnv = "1.0.7"
 log = "0.4.16"
 rayon = { version = "1.5.1", optional = true }
 
