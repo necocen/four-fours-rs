@@ -12,19 +12,24 @@ pub type Value = f64;
 /// のとき、数字`n`を表す。
 /// `0xeX`は先頭桁を示し、`0xfX`は残りの桁を示す。
 pub type Token = u8;
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    hash,
-};
+#[cfg(not(feature = "with-rayon"))]
+use std::collections::hash_map::Entry;
+use std::{collections::HashMap, hash};
 
 pub use binary_op::*;
+
+#[cfg(feature = "with-rayon")]
+use dashmap::{mapref::entry::Entry, DashMap};
 pub use equation::*;
-use fnv::FnvHashMap;
+use fnv::FnvBuildHasher;
 #[cfg(feature = "with-rayon")]
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 pub use unary_op::*;
 
-pub type Knowledge = FnvHashMap<WrappedValue, Equation>;
+#[cfg(feature = "with-rayon")]
+pub type Knowledge = DashMap<WrappedValue, Equation, FnvBuildHasher>;
+#[cfg(not(feature = "with-rayon"))]
+pub type Knowledge = HashMap<WrappedValue, Equation, FnvBuildHasher>;
 
 #[derive(Debug, Copy, Clone)]
 pub struct WrappedValue(Value);
@@ -67,7 +72,12 @@ impl Searcher {
             return;
         }
         log::info!("Start searching for {}", numbers);
-        let mut knowledge = FnvHashMap::<WrappedValue, Equation>::default();
+
+        #[cfg(feature = "with-rayon")]
+        let knowledge = Knowledge::default();
+        #[cfg(not(feature = "with-rayon"))]
+        let mut knowledge = Knowledge::default();
+
         // 数値単独での表現
         let e = Equation::from_numbers(numbers);
         knowledge.insert(WrappedValue(e.value), e);
@@ -88,10 +98,10 @@ impl Searcher {
                         let knowledge_left = &memo[key_left];
                         let knowledge_right = &memo[key_right];
                         self.binary_ops.par_iter().flat_map(move |op| {
-                            knowledge_left.par_iter().flat_map(move |(_, e1)| {
+                            knowledge_left.par_iter().flat_map(move |r1| {
                                 knowledge_right
                                     .par_iter()
-                                    .filter_map(move |(_, e2)| Equation::apply_binary(e1, e2, op))
+                                    .filter_map(move |r2| Equation::apply_binary(r1.value(), r2.value(), op))
                             })
                         })
                     })
@@ -111,7 +121,6 @@ impl Searcher {
                 }
             } else {
                 (1..numbers.len())
-                    .into_iter()
                     .flat_map(|i| {
                         let (key_left, key_right) = numbers.split_at(i);
                         let knowledge_left = &memo[key_left];
@@ -148,7 +157,7 @@ impl Searcher {
                     .flat_map(|op| {
                         knowledge
                             .par_iter()
-                            .filter_map(move |(_, e)| Equation::apply_unary(e, op))
+                            .filter_map(move |r| Equation::apply_unary(r.value(), op))
                     })
                     .collect::<Vec<_>>();
                 } else {

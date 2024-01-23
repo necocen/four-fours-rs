@@ -19,13 +19,20 @@ pub fn search_int(
 ) -> HashMap<i32, Equation> {
     // 探索
     let searcher = Searcher::new(u_ops, b_ops);
-    let mut memo = HashMap::<String, Knowledge>::new();
+    let mut memo = HashMap::<String, Knowledge>::default();
     searcher.search(&mut memo, numbers);
-    let knowledge = &memo[numbers];
+    let knowledge = &memo.get(numbers).unwrap();
 
     // 整数値のみを出力する
     let mut results = HashMap::<i32, Equation>::new();
-    for (_, e) in knowledge.iter() {
+    for r in knowledge.iter() {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "with-rayon")] {
+                let e = r.value();
+            } else {
+                let (_, e) = r;
+            }
+        }
         if e.value >= 0f64 && e.value < 2000f64 && e.value.fract().abs() < 1e-9 {
             let rounded = e.value.round() as i32;
             match results.entry(rounded) {

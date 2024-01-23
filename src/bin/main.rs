@@ -11,7 +11,7 @@ fn main() {
     let args = env::args().skip(1).collect::<Vec<_>>();
     let numbers: &str;
     if let Some(arg) = args.first() {
-        if arg.chars().all(|c| ('0'..='9').contains(&c)) {
+        if arg.chars().all(|c| c.is_ascii_digit()) {
             numbers = arg;
         } else {
             eprintln!("Given arg contains invalid character: {}", arg);
